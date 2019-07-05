@@ -7,27 +7,35 @@
 // modified, or distributed except according to those terms.
 
 use futures::{
-    failed,
     future::{select_ok, SelectOk},
-    try_ready,
-    Async::{self, Ready},
-    Failed, Future, Poll,
+    ready,
 };
-use tokio::net::{tcp::ConnectFuture, TcpStream};
+use std::{
+    future::Future,
+    io,
+    net::ToSocketAddrs,
+    pin::Pin,
+    task::{
+        Context,
+        Poll::{self, Ready},
+    },
+};
+use tokio::net::TcpStream;
 use tokio_codec::Framed;
-
-use std::{io, net::ToSocketAddrs};
 
 use crate::{
     error::*,
     io::{packet_codec::PacketCodec, Stream},
 };
 
-steps! {
-    ConnectingTcpStream {
-        WaitForStream(SelectOk<ConnectFuture>),
-        Fail(Failed<(), Error>),
-    }
+enum Step {
+    WaitForStream(Pin<Box<SelectOk<Pin<Box<dyn Future<Output = io::Result<TcpStream>>>>>>>),
+    Fail(Error),
+}
+
+enum Out {
+    WaitForStream(Pin<Box<TcpStream>>),
+    Fail(Error),
 }
 
 /// Future that resolves to a `Stream` connected to a MySql server.
@@ -35,10 +43,23 @@ pub struct ConnectingTcpStream {
     step: Step,
 }
 
+impl ConnectingTcpStream {
+    fn either_poll(&mut self, cx: &mut Context) -> Result<Poll<Out>> {
+        /*
+        match self.step {
+            Step::WaitForStream(fut) => Ok(Ready(Out::WaitForStream(ready!(fut.poll(cx))))),
+            Step::Fail(error) => Err(Out::Fail(error)),
+        }
+         */
+        unimplemented!()
+    }
+}
+
 pub fn new<S>(addr: S) -> ConnectingTcpStream
 where
     S: ToSocketAddrs,
 {
+    /*
     match addr.to_socket_addrs() {
         Ok(addresses) => {
             let mut streams = Vec::new();
@@ -65,13 +86,15 @@ where
             step: Step::Fail(failed(err.into())),
         },
     }
+     */
+    unimplemented!()
 }
 
 impl Future for ConnectingTcpStream {
-    type Item = Stream;
-    type Error = Error;
+    type Output = Result<Stream>;
 
-    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+    fn poll(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
+        /*
         match try_ready!(self.either_poll()) {
             Out::WaitForStream((stream, _)) => Ok(Ready(Stream {
                 closed: false,
@@ -79,5 +102,7 @@ impl Future for ConnectingTcpStream {
             })),
             Out::Fail(_) => unreachable!(),
         }
+         */
+        unimplemented!()
     }
 }

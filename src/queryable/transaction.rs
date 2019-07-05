@@ -96,15 +96,17 @@ impl fmt::Display for IsolationLevel {
 /// `NestedTransaction` error if you call `transaction.start_transaction(_)`.
 pub struct Transaction<T>(Option<Either<T, Streamless<T>>>);
 
-pub fn new<T>(conn_like: T, options: TransactionOptions) -> impl MyFuture<Transaction<T>>
+pub async fn new<T>(conn_like: T, options: TransactionOptions) -> Result<Transaction<T>>
 where
     T: Queryable + ConnectionLike,
 {
-    Transaction::new(conn_like, options)
+    //Transaction::new(conn_like, options)
+    unimplemented!()
 }
 
 impl<T: Queryable + ConnectionLike> Transaction<T> {
-    fn new(conn_like: T, options: TransactionOptions) -> impl MyFuture<Transaction<T>> {
+    async fn new(conn_like: T, options: TransactionOptions) -> Result<Transaction<T>> {
+        /*
         let TransactionOptions {
             consistent_snapshot,
             isolation_level,
@@ -154,29 +156,40 @@ impl<T: Queryable + ConnectionLike> Transaction<T> {
             });
 
         B(fut)
+         */
+        unimplemented!()
     }
 
     fn unwrap(self) -> T {
+        /*
         match self {
             Transaction(Some(A(conn_like))) => conn_like,
             _ => unreachable!(),
         }
+         */
+        unimplemented!()
     }
 
     /// Returns future that will perform `COMMIT` query and resolve to a wrapped `Queryable`.
-    pub fn commit(self) -> impl MyFuture<T> {
+    pub async fn commit(self) -> Result<T> {
+        /*
         self.drop_query("COMMIT").map(|mut this| {
             this.set_in_transaction(false);
             this.unwrap()
         })
+         */
+        unimplemented!()
     }
 
     /// Returns future that will perform `ROLLBACK` query and resolve to a wrapped `Queryable`.
-    pub fn rollback(self) -> impl MyFuture<T> {
+    pub async fn rollback(self) -> Result<T> {
+        /*
         self.drop_query("ROLLBACK").map(|mut this| {
             this.set_in_transaction(false);
             this.unwrap()
         })
+         */
+        unimplemented!()
     }
 }
 
@@ -187,6 +200,7 @@ impl<T: ConnectionLike + 'static> ConnectionLikeWrapper for Transaction<T> {
     where
         Self: Sized,
     {
+        /*
         let Transaction(conn_like) = self;
         match conn_like {
             Some(A(conn_like)) => {
@@ -196,9 +210,12 @@ impl<T: ConnectionLike + 'static> ConnectionLikeWrapper for Transaction<T> {
             }
             _ => unreachable!(),
         }
+         */
+        unimplemented!()
     }
 
     fn return_stream(&mut self, stream: io::Stream) {
+        /*
         let conn_like = self.0.take().unwrap();
         match conn_like {
             B(streamless) => {
@@ -206,19 +223,27 @@ impl<T: ConnectionLike + 'static> ConnectionLikeWrapper for Transaction<T> {
             }
             _ => unreachable!(),
         }
+         */
+        unimplemented!()
     }
 
     fn conn_like_ref(&self) -> &Self::ConnLike {
+        /*
         match self.0 {
             Some(A(ref conn_like)) => conn_like,
             _ => unreachable!(),
         }
+         */
+        unimplemented!()
     }
 
     fn conn_like_mut(&mut self) -> &mut Self::ConnLike {
+        /*
         match self.0 {
             Some(A(ref mut conn_like)) => conn_like,
             _ => unreachable!(),
         }
+         */
+        unimplemented!()
     }
 }

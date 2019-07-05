@@ -6,7 +6,16 @@
 // option. All files in the project carrying such notice may not be copied,
 // modified, or distributed except according to those terms.
 
-use futures::{try_ready, Async::Ready, Future, Poll};
+use futures::ready;
+
+use std::{
+    future::Future,
+    pin::Pin,
+    task::{
+        Context,
+        Poll::{self, Ready},
+    },
+};
 
 use crate::{
     connection_like::{streamless::Streamless, ConnectionLike},
@@ -16,7 +25,7 @@ use crate::{
 
 pub struct WritePacket<T> {
     conn_like: Option<Streamless<T>>,
-    fut: io::futures::WritePacket,
+    fut: io::io_futures::WritePacket,
 }
 
 impl<T: ConnectionLike> WritePacket<T> {
@@ -31,14 +40,16 @@ impl<T: ConnectionLike> WritePacket<T> {
 }
 
 impl<T: ConnectionLike> Future for WritePacket<T> {
-    type Item = T;
-    type Error = Error;
+    type Output = Result<T>;
 
-    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+    fn poll(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
+        /*
         let (stream, seq_id) = try_ready!(self.fut.poll());
         let mut conn_like = self.conn_like.take().unwrap().return_stream(stream);
         conn_like.set_seq_id(seq_id);
         conn_like.touch();
         Ok(Ready(conn_like))
+         */
+        unimplemented!()
     }
 }

@@ -6,13 +6,20 @@
 // option. All files in the project carrying such notice may not be copied,
 // modified, or distributed except according to those terms.
 
-use futures::{try_ready, Async::Ready, Future, Poll};
-
 use crate::{
     connection_like::ConnectionLike,
     error::*,
     queryable::{query_result::QueryResult, Protocol},
     BoxFuture, Row,
+};
+use futures::{future::FutureObj, ready};
+use std::{
+    future::Future,
+    pin::Pin,
+    task::{
+        Context,
+        Poll::{self, Ready},
+    },
 };
 
 pub struct Reduce<T, P, F, U> {
@@ -29,7 +36,7 @@ where
 {
     pub fn new(query_result: QueryResult<T, P>, init: U, fun: F) -> Reduce<T, P, F, U> {
         Reduce {
-            fut: Box::new(query_result.get_row()),
+            fut: FutureObj::new(Box::new(query_result.get_row())),
             acc: Some(init),
             fun,
         }
@@ -42,10 +49,10 @@ where
     P: Protocol + 'static,
     T: ConnectionLike + Sized + 'static,
 {
-    type Item = (QueryResult<T, P>, U);
-    type Error = Error;
+    type Output = Result<(QueryResult<T, P>, U)>;
 
-    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+    fn poll(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
+        /*
         loop {
             let (query_result, row_opt) = try_ready!(self.fut.poll());
             match row_opt {
@@ -60,5 +67,7 @@ where
             }
             self.fut = Box::new(query_result.get_row());
         }
+         */
+        unimplemented!()
     }
 }

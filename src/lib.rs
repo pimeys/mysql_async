@@ -120,10 +120,11 @@
 
 #![recursion_limit = "1024"]
 #![cfg_attr(feature = "nightly", feature(test, const_fn))]
+#![feature(async_await, await_macro)]
+#![allow(unused_imports, unused_variables, unused_mut, dead_code)]
 
 #[cfg(feature = "nightly")]
 extern crate test;
-
 pub use mysql_common::{chrono, constants as consts, params, time, uuid};
 
 #[macro_use]
@@ -137,12 +138,15 @@ mod local_infile_handler;
 mod opts;
 mod queryable;
 
-pub type BoxFuture<T> = Box<dyn ::futures::Future<Item = T, Error = error::Error> + Send + 'static>;
+pub type BoxFuture<T> = ::futures::future::FutureObj<'static, Result<T, error::Error>>;
 
 /// Alias for `Future` with library error as `Future::Error`.
-pub trait MyFuture<T>: ::futures::Future<Item = T, Error = error::Error> + Send + 'static {}
+pub trait MyFuture<T>:
+    ::futures::Future<Output = Result<T, error::Error>> + Send + 'static
+{
+}
 impl<T, U> MyFuture<T> for U where
-    U: ::futures::Future<Item = T, Error = error::Error> + Send + 'static
+    U: ::futures::Future<Output = Result<T, error::Error>> + Send + 'static
 {
 }
 

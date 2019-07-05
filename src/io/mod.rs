@@ -6,29 +6,39 @@
 // option. All files in the project carrying such notice may not be copied,
 // modified, or distributed except according to those terms.
 
+use futures::{future::ok, stream};
 #[cfg(feature = "ssl")]
-use ::futures::{future::Either::*, IntoFuture};
-use ::futures::{
-    future::{ok, Future},
-    stream, Async, Poll,
-};
+use futures::{future::Either::*, IntoFuture};
 use mysql_common::packets::RawPacket;
 #[cfg(feature = "ssl")]
 use native_tls::{Certificate, Identity, TlsConnector};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio_codec::Framed;
 #[cfg(feature = "ssl")]
 use tokio_codec::FramedParts;
 use tokio_io::{AsyncRead, AsyncWrite};
 
-use std::{fmt, io, net::ToSocketAddrs, path::Path, time::Duration};
+use std::{
+    fmt,
+    future::Future,
+    io,
+    net::ToSocketAddrs,
+    path::Path,
+    pin::Pin,
+    task::{Context, Poll},
+    time::Duration,
+};
+
 #[cfg(feature = "ssl")]
 use std::{fs::File, io::Read};
 
 use crate::{
     error::*,
     io::{
-        futures::{new_connecting_tcp_stream, new_write_packet, ConnectingTcpStream, WritePacket},
+        io_futures::{
+            new_connecting_tcp_stream, new_write_packet, ConnectingTcpStream, WritePacket,
+        },
         socket::Socket,
     },
     opts::SslOpts,
@@ -37,22 +47,22 @@ use crate::{
 
 #[cfg(feature = "ssl")]
 mod async_tls;
-pub mod futures;
+pub mod io_futures;
 mod packet_codec;
 mod socket;
 
 #[derive(Debug)]
 pub enum Endpoint {
-    Plain(TcpStream),
+    Plain(Pin<Box<TcpStream>>),
     #[cfg(feature = "ssl")]
-    Secure(self::async_tls::TlsStream<TcpStream>),
-    Socket(Socket),
+    Secure(Pin<Box<self::async_tls::TlsStream<TcpStream>>>),
+    Socket(Pin<Box<Socket>>),
 }
 
 impl Endpoint {
     #[cfg(feature = "ssl")]
     pub fn is_secure(&self) -> bool {
-        if let Endpoint::Secure(_) = self {
+        if let Endpoint::Secure(_) = *self {
             true
         } else {
             false
@@ -87,6 +97,7 @@ impl Endpoint {
 
     #[cfg(feature = "ssl")]
     pub fn make_secure(self, domain: String, ssl_opts: SslOpts) -> impl MyFuture<Self> {
+        /*
         if let Endpoint::Socket(_) = self {
             // inapplicable
             return A(ok(self));
@@ -125,78 +136,143 @@ impl Endpoint {
         .map(|tls_stream| Endpoint::Secure(tls_stream));
 
         B(fut)
+         *
+         */
+        unimplemented!()
     }
 }
 
 impl From<TcpStream> for Endpoint {
     fn from(stream: TcpStream) -> Self {
-        Endpoint::Plain(stream)
+        Endpoint::Plain(Box::pin(stream))
     }
 }
 
 impl From<Socket> for Endpoint {
     fn from(socket: Socket) -> Self {
-        Endpoint::Socket(socket)
+        Endpoint::Socket(Box::pin(socket))
     }
 }
 
 #[cfg(feature = "ssl")]
 impl From<self::async_tls::TlsStream<TcpStream>> for Endpoint {
     fn from(stream: self::async_tls::TlsStream<TcpStream>) -> Self {
-        Endpoint::Secure(stream)
+        Endpoint::Secure(Box::pin(stream))
     }
 }
 
 impl io::Read for Endpoint {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        /*
         match *self {
             Endpoint::Plain(ref mut stream) => stream.read(buf),
             #[cfg(feature = "ssl")]
             Endpoint::Secure(ref mut stream) => stream.read(buf),
             Endpoint::Socket(ref mut stream) => stream.read(buf),
         }
+         */
+        unimplemented!()
     }
 }
 
 impl io::Write for Endpoint {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        /*
         match *self {
             Endpoint::Plain(ref mut stream) => stream.write(buf),
             #[cfg(feature = "ssl")]
             Endpoint::Secure(ref mut stream) => stream.write(buf),
             Endpoint::Socket(ref mut stream) => stream.write(buf),
         }
+         */
+        unimplemented!()
     }
 
     fn flush(&mut self) -> io::Result<()> {
+        /*
         match *self {
             Endpoint::Plain(ref mut stream) => stream.flush(),
             #[cfg(feature = "ssl")]
             Endpoint::Secure(ref mut stream) => stream.flush(),
             Endpoint::Socket(ref mut stream) => stream.flush(),
         }
+         */
+        unimplemented!()
     }
 }
 
 impl AsyncRead for Endpoint {
-    unsafe fn prepare_uninitialized_buffer(&self, _buf: &mut [u8]) -> bool {
+    unsafe fn prepare_uninitialized_buffer(&self, buf: &mut [u8]) -> bool {
+        /*
         match *self {
-            Endpoint::Plain(ref stream) => stream.prepare_uninitialized_buffer(_buf),
+            Endpoint::Plain(ref stream) => stream.prepare_uninitialized_buffer(buf),
             #[cfg(feature = "ssl")]
-            Endpoint::Secure(ref stream) => stream.prepare_uninitialized_buffer(_buf),
-            Endpoint::Socket(ref stream) => stream.prepare_uninitialized_buffer(_buf),
+            Endpoint::Secure(ref stream) => stream.prepare_uninitialized_buffer(buf),
+            Endpoint::Socket(ref stream) => stream.prepare_uninitialized_buffer(buf),
         }
+         */
+        unimplemented!()
+    }
+
+    fn poll_read(
+        self: Pin<&mut Self>,
+        cx: &mut Context,
+        buf: &mut [u8],
+    ) -> Poll<io::Result<usize>> {
+        /*
+        match *self {
+            Endpoint::Plain(ref stream) => stream.poll_read(cx, buf),
+            #[cfg(feature = "ssl")]
+            Endpoint::Secure(ref stream) => stream.poll_read(cx, buf),
+            Endpoint::Socket(ref stream) => stream.poll_read(cx, buf),
+        }
+         */
+        unimplemented!()
     }
 }
 
 impl AsyncWrite for Endpoint {
-    fn shutdown(&mut self) -> Poll<(), io::Error> {
+    fn poll_write(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &[u8],
+    ) -> Poll<futures::io::Result<usize>> {
+        /*
         match *self {
-            Endpoint::Plain(ref mut stream) => stream.shutdown(),
+            Endpoint::Plain(ref stream) => stream.poll_write(cx, buf),
             #[cfg(feature = "ssl")]
-            Endpoint::Secure(ref mut stream) => stream.shutdown(),
-            Endpoint::Socket(ref mut stream) => stream.shutdown(),
+            Endpoint::Secure(ref stream) => stream.poll_write(cx, buf),
+            Endpoint::Socket(ref stream) => stream.poll_write(cx, buf),
         }
+         */
+        unimplemented!()
+    }
+
+    fn poll_flush(
+        self: Pin<&mut Self>,
+        cx: &mut Context,
+    ) -> Poll<std::result::Result<(), io::Error>> {
+        /*
+        match *self {
+            Endpoint::Plain(ref stream) => stream.poll_flush(cx),
+            #[cfg(feature = "ssl")]
+            Endpoint::Secure(ref stream) => stream.poll_flush(cx),
+            Endpoint::Socket(ref stream) => stream.poll_flush(cx),
+        }
+         */
+        unimplemented!()
+    }
+
+    fn poll_shutdown(self: Pin<&mut Self>, cx: &mut Context) -> Poll<futures::io::Result<()>> {
+        /*
+        match *self {
+            Endpoint::Plain(ref stream) => stream.poll_flush(cx),
+            #[cfg(feature = "ssl")]
+            Endpoint::Secure(ref stream) => stream.poll_flush(cx),
+            Endpoint::Socket(ref stream) => stream.poll_flush(cx),
+        }
+         */
+        unimplemented!()
     }
 }
 
@@ -233,8 +309,9 @@ impl Stream {
         new_connecting_tcp_stream(addr)
     }
 
-    pub fn connect_socket<P: AsRef<Path>>(path: P) -> impl Future<Item = Stream, Error = Error> {
-        Socket::new(path).map(Stream::new).map_err(Error::from)
+    pub async fn connect_socket<P: AsRef<Path>>(path: P) -> Result<Stream> {
+        //Socket::new(path).map(Stream::new).map_err(Error::from)
+        unimplemented!()
     }
 
     pub fn write_packet(self, data: Vec<u8>, seq_id: u8) -> WritePacket {
@@ -251,12 +328,15 @@ impl Stream {
 
     #[cfg(not(feature = "ssl"))]
     #[allow(unused)]
-    pub fn make_secure(self, domain: String, ssl_opts: SslOpts) -> impl MyFuture<Self> {
-        ok(panic!("Ssl connection requires `ssl` feature"))
+    pub async fn make_secure(self, domain: String, ssl_opts: SslOpts) -> Result<Self> {
+        //ok(panic!("Ssl connection requires `ssl` feature"))
+        unimplemented!()
     }
 
     #[cfg(feature = "ssl")]
-    pub fn make_secure(mut self, domain: String, ssl_opts: SslOpts) -> impl MyFuture<Self> {
+    pub async fn make_secure(mut self, domain: String, ssl_opts: SslOpts) -> Result<Self> {
+        unimplemented!()
+        /*
         let codec = self.codec.take().unwrap();
         let FramedParts { io, codec, .. } = codec.into_parts();
         io.make_secure(domain, ssl_opts).map(move |endpoint| {
@@ -264,6 +344,7 @@ impl Stream {
             self.codec = Some(Box::new(codec));
             self
         })
+         */
     }
 
     pub fn is_secure(&self) -> bool {
@@ -272,14 +353,16 @@ impl Stream {
 }
 
 impl stream::Stream for Stream {
-    type Item = (RawPacket, u8);
-    type Error = Error;
+    type Item = Result<(RawPacket, u8)>;
 
-    fn poll(&mut self) -> Poll<Option<(RawPacket, u8)>, Error> {
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Option<Self::Item>> {
+        unimplemented!()
+        /*
         if !self.closed {
             self.codec.as_mut().unwrap().poll().map_err(Error::from)
         } else {
             Ok(Async::Ready(None))
         }
+         */
     }
 }

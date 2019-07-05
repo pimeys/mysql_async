@@ -6,7 +6,16 @@
 // option. All files in the project carrying such notice may not be copied,
 // modified, or distributed except according to those terms.
 
-use futures::{try_ready, Async::Ready, Future, Poll};
+use futures::{future::FutureObj, ready};
+
+use std::{
+    future::Future,
+    pin::Pin,
+    task::{
+        Context,
+        Poll::{self, Ready},
+    },
+};
 
 use crate::{
     connection_like::ConnectionLike,
@@ -28,7 +37,7 @@ where
 {
     pub fn new(query_result: QueryResult<T, P>, fun: F) -> ForEach<T, P, F> {
         ForEach {
-            fut: Box::new(query_result.get_row()),
+            fut: FutureObj::new(Box::new(query_result.get_row())),
             fun,
         }
     }
@@ -41,10 +50,11 @@ where
     P: Send + 'static,
     T: ConnectionLike + Sized + 'static,
 {
-    type Item = (QueryResult<T, P>);
-    type Error = Error;
+    type Output = Result<QueryResult<T, P>>;
 
-    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+    fn poll(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
+        unimplemented!()
+        /*
         loop {
             let (query_result, row_opt) = try_ready!(self.fut.poll());
             match row_opt {
@@ -57,5 +67,6 @@ where
             }
             self.fut = Box::new(query_result.get_row());
         }
+         */
     }
 }

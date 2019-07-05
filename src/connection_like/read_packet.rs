@@ -7,11 +7,19 @@
 // modified, or distributed except according to those terms.
 
 use futures::{
+    ready,
     stream::{Stream, StreamFuture},
-    try_ready,
-    Async::Ready,
-    Future, Poll,
 };
+
+use std::{
+    future::Future,
+    pin::Pin,
+    task::{
+        Context,
+        Poll::{self, Ready},
+    },
+};
+
 use mysql_common::packets::{parse_err_packet, parse_ok_packet, RawPacket};
 
 use crate::{
@@ -27,19 +35,22 @@ pub struct ReadPacket<T> {
 
 impl<T: ConnectionLike> ReadPacket<T> {
     pub fn new(conn_like: T) -> Self {
+        /*
         let (incomplete_conn, stream) = conn_like.take_stream();
         ReadPacket {
             conn_like: Some(incomplete_conn),
             fut: stream.into_future(),
         }
+         */
+        unimplemented!()
     }
 }
 
 impl<T: ConnectionLike> Future for ReadPacket<T> {
-    type Item = (T, RawPacket);
-    type Error = Error;
+    type Output = Result<(T, RawPacket)>;
 
-    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+    fn poll(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
+        /*
         let (packet_opt, stream) = try_ready!(self.fut.poll());
         let mut conn_like = self.conn_like.take().unwrap().return_stream(stream);
         match packet_opt {
@@ -61,5 +72,7 @@ impl<T: ConnectionLike> Future for ReadPacket<T> {
             }
             None => Err(DriverError::ConnectionClosed.into()),
         }
+         */
+        unimplemented!()
     }
 }

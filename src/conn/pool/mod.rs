@@ -6,16 +6,16 @@
 // option. All files in the project carrying such notice may not be copied,
 // modified, or distributed except according to those terms.
 
-use ::futures::{
-    task::{self, Task},
-    Async::{self, NotReady, Ready},
-    Future,
-};
-
 use std::{
     fmt,
+    future::Future,
+    pin::Pin,
     str::FromStr,
     sync::{Arc, Mutex, MutexGuard},
+    task::{
+        Context,
+        Poll::{self, Pending, Ready},
+    },
 };
 
 use crate::{
@@ -37,7 +37,7 @@ pub struct Inner {
     queue: Vec<BoxFuture<Conn>>,
     idle: Vec<Conn>,
     ongoing: usize,
-    tasks: Vec<Task>,
+    //tasks: Vec<Task>,
 }
 
 impl Inner {
@@ -56,13 +56,13 @@ pub struct Pool {
 
 impl fmt::Debug for Pool {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let (new_len, idle_len, queue_len, ongoing, tasks_len) = self.with_inner(|inner| {
+        let (new_len, idle_len, queue_len, ongoing) = self.with_inner(|inner| {
             (
                 inner.new.len(),
                 inner.idle.len(),
                 inner.queue.len(),
                 inner.ongoing,
-                inner.tasks.len(),
+                //inner.tasks.len(),
             )
         });
         f.debug_struct("Pool")
@@ -71,7 +71,7 @@ impl fmt::Debug for Pool {
             .field("idle connections count", &idle_len)
             .field("queue length", &queue_len)
             .field("ongoing connections count", &ongoing)
-            .field("tasks count", &tasks_len)
+            //.field("tasks count", &tasks_len)
             .finish()
     }
 }
@@ -89,7 +89,7 @@ impl Pool {
                 idle: Vec::new(),
                 queue: Vec::new(),
                 ongoing: 0,
-                tasks: Vec::new(),
+                //tasks: Vec::new(),
             })),
             pool_constraints,
         }
@@ -107,12 +107,15 @@ impl Pool {
     }
 
     /// Shortcut for `get_conn` followed by `start_transaction`.
-    pub fn start_transaction(
+    pub async fn start_transaction(
         &self,
         options: TransactionOptions,
-    ) -> impl MyFuture<Transaction<Conn>> {
+    ) -> Result<Transaction<Conn>> {
+        /*
         self.get_conn()
             .and_then(|conn| Queryable::start_transaction(conn, options))
+         */
+        unimplemented!()
     }
 
     /// Returns future that disconnects this pool from server and resolves to `()`.
@@ -162,6 +165,7 @@ impl Pool {
 
     /// A way to return connection taken from a pool.
     fn return_conn(&mut self, conn: Conn) {
+        /*
         let min = self.pool_constraints.min();
 
         self.with_inner(|mut inner| {
@@ -188,6 +192,8 @@ impl Pool {
                 task.notify()
             }
         });
+         */
+        unimplemented!()
     }
 
     fn with_inner<F, T>(&self, fun: F) -> T
@@ -200,6 +206,7 @@ impl Pool {
 
     /// Will manage lifetime of futures stored in a pool.
     fn handle_futures(&mut self) -> Result<()> {
+        /*
         if !self.in_queue() {
             // There is no futures in queue
             return Ok(());
@@ -283,10 +290,13 @@ impl Pool {
         } else {
             Ok(())
         }
+         */
+        unimplemented!()
     }
 
     /// Will poll pool for connection.
-    fn poll(&mut self) -> Result<Async<Conn>> {
+    fn poll(&mut self) -> Poll<Result<Conn>> {
+        /*
         if self.with_inner(|inner| inner.closed) {
             return Err(DriverError::PoolDisconnected.into());
         }
@@ -313,6 +323,8 @@ impl Pool {
                 }
             }
         }
+         */
+        unimplemented!()
     }
 }
 
@@ -326,6 +338,7 @@ impl Drop for Conn {
     }
 }
 
+/*
 #[cfg(test)]
 mod test {
     use futures::collect;
@@ -557,3 +570,4 @@ mod test {
         }
     }
 }
+ */

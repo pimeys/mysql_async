@@ -7,12 +7,11 @@
 // modified, or distributed except according to those terms.
 
 use byteorder::{ByteOrder, LittleEndian};
-use futures::future::{err, loop_fn, ok, Either::*, Future, IntoFuture, Loop};
+use futures::future::{err, ok, Either::*, Future, IntoFuture};
 use mysql_common::{
     io::ReadMysqlExt,
     packets::{column_from_payload, parse_local_infile_packet, Column, RawPacket},
 };
-use tokio_io::io::read;
 
 use std::sync::Arc;
 
@@ -217,6 +216,7 @@ pub trait ConnectionLike: Send {
     where
         Self: Sized + 'static,
     {
+        /*
         let fut = if self.get_opts().get_stmt_cache_size() > 0 {
             if let Some(old_stmt) = self.stmt_cache_mut().put(query, stmt.clone()) {
                 A(self
@@ -229,6 +229,8 @@ pub trait ConnectionLike: Send {
             B(ok((self, StmtCacheResult::NotCached(stmt.statement_id))))
         };
         Box::new(fut)
+         */
+        unimplemented!()
     }
 
     fn get_cached_stmt(&mut self, query: &str) -> Option<&InnerStmt> {
@@ -248,6 +250,7 @@ pub trait ConnectionLike: Send {
     where
         Self: Sized + 'static,
     {
+        /*
         if n == 0 {
             return Box::new(ok((self, Vec::new())));
         }
@@ -264,6 +267,8 @@ pub trait ConnectionLike: Send {
                 })
         });
         Box::new(fut)
+         */
+        unimplemented!()
     }
 
     fn prepare_stmt<Q>(mut self, query: Q) -> BoxFuture<(Self, InnerStmt, StmtCacheResult)>
@@ -271,6 +276,7 @@ pub trait ConnectionLike: Send {
         Q: AsRef<str>,
         Self: Sized + 'static,
     {
+        /*
         match parse_named_params(query.as_ref()) {
             Ok((named_params, query)) => {
                 let query = query.into_owned();
@@ -373,6 +379,8 @@ pub trait ConnectionLike: Send {
             }
             Err(err) => Box::new(Err(Error::from(err)).into_future()),
         }
+         */
+        unimplemented!()
     }
 
     fn close_stmt(self, statement_id: u32) -> WritePacket<Self>
@@ -391,6 +399,8 @@ pub trait ConnectionLike: Send {
         P: Protocol,
         P: Send + 'static,
     {
+        unimplemented!()
+        /*
         let fut = self
             .read_packet()
             .and_then(|(this, packet)| match packet.0[0] {
@@ -399,6 +409,7 @@ pub trait ConnectionLike: Send {
                 _ => B(handle_result_set(this, packet, cached)),
             });
         Box::new(fut)
+         */
     }
 
     /// Returns future that writes packet to a server end resolves to `Self`.
@@ -425,16 +436,17 @@ pub trait ConnectionLike: Send {
 }
 
 /// Will handle local infile packet.
-fn handle_local_infile<T, P>(
+async fn handle_local_infile<T, P>(
     this: T,
     packet: RawPacket,
     cached: Option<StmtCacheResult>,
-) -> impl MyFuture<QueryResult<T, P>>
+) -> Result<QueryResult<T, P>>
 where
     P: Protocol + 'static,
     T: ConnectionLike,
     T: Send + Sized + 'static,
 {
+    /*
     parse_local_infile_packet(&*packet.0)
         .map_err(Error::from)
         .and_then(|local_infile| match this.get_local_infile_handler() {
@@ -469,20 +481,23 @@ where
             .and_then(|this| this.read_packet())
             .map(|(this, _)| query_result::new(this, None, cached))
         })
+     */
+    unimplemented!()
 }
 
 /// Will handle result set packet.
-fn handle_result_set<T, P>(
+async fn handle_result_set<T, P>(
     this: T,
     packet: RawPacket,
     cached: Option<StmtCacheResult>,
-) -> impl MyFuture<QueryResult<T, P>>
+) -> Result<QueryResult<T, P>>
 where
     P: Protocol,
     P: Send + 'static,
     T: ConnectionLike,
     T: Send + Sized + 'static,
 {
+    /*
     (&*packet.0)
         .read_lenenc_int()
         .map_err(Into::into)
@@ -510,4 +525,6 @@ where
             this.set_pending_result(Some((Clone::clone(&columns), None)));
             query_result::new(this, Some(columns), cached)
         })
+     */
+    unimplemented!()
 }

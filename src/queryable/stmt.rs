@@ -9,13 +9,13 @@
 use bit_vec::BitVec;
 use byteorder::{LittleEndian as LE, ReadBytesExt, WriteBytesExt};
 use futures::future::{
-    err, loop_fn, ok,
+    err, ok,
     Either::{self, *},
-    Future, IntoFuture, Loop,
+    IntoFuture,
 };
 use mysql_common::value::serialize_bin_many;
 
-use std::io::Write;
+use std::{future::Future, io::Write};
 
 use crate::{
     connection_like::{
@@ -85,18 +85,22 @@ where
     T: ConnectionLike + Sized + 'static,
 {
     fn new(conn_like: T, inner: InnerStmt, cached: StmtCacheResult) -> Stmt<T> {
+        /*
         Stmt {
             conn_like: Some(A(conn_like)),
             inner,
             cached: Some(cached),
         }
+         */
+        unimplemented!()
     }
 
-    fn send_long_data_for_index(
+    async fn send_long_data_for_index(
         self,
         params: Vec<Value>,
         index: usize,
-    ) -> impl MyFuture<(Self, Vec<Value>)> {
+    ) -> Result<(Self, Vec<Value>)> {
+        /*
         loop_fn((self, params, index, 0), |(this, params, index, chunk)| {
             let data_cap = crate::consts::MAX_PAYLOAD_LEN - 10;
             let buf = match params[index] {
@@ -133,13 +137,16 @@ where
                 None => B(ok(Loop::Break((this, params)))),
             }
         })
+         */
+        unimplemented!()
     }
 
-    fn send_long_data(
+    async fn send_long_data(
         self,
         params: Vec<Value>,
         large_bitmap: BitVec<u8>,
-    ) -> impl MyFuture<(Self, Vec<Value>)> {
+    ) -> Result<(Self, Vec<Value>)> {
+        /*
         let bits = large_bitmap.into_iter().enumerate();
 
         loop_fn(
@@ -152,14 +159,17 @@ where
                 None => B(ok(Loop::Break((this, params)))),
             },
         )
+         */
+        unimplemented!()
     }
 
-    fn execute_positional<U>(self, params: U) -> impl MyFuture<QueryResult<Self, BinaryProtocol>>
+    async fn execute_positional<U>(self, params: U) -> Result<QueryResult<Self, BinaryProtocol>>
     where
         U: ::std::ops::Deref<Target = [Value]>,
         U: IntoIterator<Item = Value>,
         U: Send + 'static,
     {
+        /*
         if self.inner.num_params as usize != params.len() {
             let error = DriverError::StmtParamsMismatch {
                 required: self.inner.num_params,
@@ -194,9 +204,12 @@ where
             })
             .and_then(|this| this.read_result_set(None));
         B(fut)
+         */
+        unimplemented!()
     }
 
-    fn execute_named(self, params: Params) -> impl MyFuture<QueryResult<Self, BinaryProtocol>> {
+    async fn execute_named(self, params: Params) -> Result<QueryResult<Self, BinaryProtocol>> {
+        /*
         if self.inner.named_params.is_none() {
             let error = DriverError::NamedParamsForPositionalQuery.into();
             return A(err(error));
@@ -214,9 +227,12 @@ where
             Params::Positional(params) => B(self.execute_positional(params)),
             _ => unreachable!(),
         }
+         */
+        unimplemented!()
     }
 
-    fn execute_empty(self) -> impl MyFuture<QueryResult<Self, BinaryProtocol>> {
+    async fn execute_empty(self) -> Result<QueryResult<Self, BinaryProtocol>> {
+        /*
         if self.inner.num_params > 0 {
             let error = DriverError::StmtParamsMismatch {
                 required: self.inner.num_params,
@@ -234,27 +250,33 @@ where
         B(self
             .write_command_data(Command::COM_STMT_EXECUTE, data)
             .and_then(|this| this.read_result_set(None)))
+         */
+        unimplemented!()
     }
 
     /// See `Queryable::execute`
-    pub fn execute<P>(self, params: P) -> impl MyFuture<QueryResult<Self, BinaryProtocol>>
+    pub async fn execute<P>(self, params: P) -> Result<QueryResult<Self, BinaryProtocol>>
     where
         P: Into<Params>,
     {
+        /*
         let params = params.into();
         match params {
             Params::Positional(params) => A(self.execute_positional(params)),
             Params::Named(_) => B(A(self.execute_named(params))),
             Params::Empty => B(B(self.execute_empty())),
         }
+         */
+        unimplemented!()
     }
 
     /// See `Queryable::first`
-    pub fn first<P, R>(self, params: P) -> impl MyFuture<(Self, Option<R>)>
+    pub async fn first<P, R>(self, params: P) -> Result<(Self, Option<R>)>
     where
         P: Into<Params> + 'static,
         R: FromRow,
     {
+        /*
         self.execute(params)
             .and_then(|result| result.collect_and_drop::<Row>())
             .map(|(this, mut rows)| {
@@ -264,16 +286,19 @@ where
                     (this, rows.pop().map(FromRow::from_row))
                 }
             })
+         */
+        unimplemented!()
     }
 
     /// See `Queryable::batch`
-    pub fn batch<I, P>(self, params_iter: I) -> impl MyFuture<Self>
+    pub async fn batch<I, P>(self, params_iter: I) -> Result<Self>
     where
         I: IntoIterator<Item = P>,
         I::IntoIter: Send + 'static,
         Params: From<P>,
         P: 'static,
     {
+        /*
         let params_iter = params_iter.into_iter().map(Params::from);
 
         loop_fn(
@@ -286,10 +311,13 @@ where
                 None => B(ok(Loop::Break(this))),
             },
         )
+         */
+        unimplemented!()
     }
 
     /// This will close statement (if it's not in the cache) and resolve to a wrapped queryable.
-    pub fn close(mut self) -> impl MyFuture<T> {
+    pub async fn close(mut self) -> Result<T> {
+        /*
         let cached = self.cached.take();
         match self.conn_like {
             Some(A(conn_like)) => {
@@ -301,13 +329,18 @@ where
             }
             _ => unreachable!(),
         }
+         */
+        unimplemented!()
     }
 
     pub(crate) fn unwrap(mut self) -> (T, Option<StmtCacheResult>) {
+        /*
         match self.conn_like {
             Some(A(conn_like)) => (conn_like, self.cached.take()),
             _ => unreachable!(),
         }
+         */
+        unimplemented!()
     }
 }
 
@@ -318,6 +351,7 @@ impl<T: ConnectionLike + 'static> ConnectionLikeWrapper for Stmt<T> {
     where
         Self: Sized,
     {
+        /*
         let Stmt {
             conn_like,
             inner,
@@ -335,9 +369,12 @@ impl<T: ConnectionLike + 'static> ConnectionLikeWrapper for Stmt<T> {
             }
             _ => unreachable!(),
         }
+         */
+        unimplemented!()
     }
 
     fn return_stream(&mut self, stream: io::Stream) {
+        /*
         let conn_like = self.conn_like.take().unwrap();
         match conn_like {
             B(streamless) => {
@@ -345,20 +382,28 @@ impl<T: ConnectionLike + 'static> ConnectionLikeWrapper for Stmt<T> {
             }
             _ => unreachable!(),
         }
+         */
+        unimplemented!()
     }
 
     fn conn_like_ref(&self) -> &Self::ConnLike {
+        /*
         match self.conn_like {
             Some(A(ref conn_like)) => conn_like,
             _ => unreachable!(),
         }
+         */
+        unimplemented!()
     }
 
     fn conn_like_mut(&mut self) -> &mut Self::ConnLike {
+        /*
         match self.conn_like {
             Some(A(ref mut conn_like)) => conn_like,
             _ => unreachable!(),
         }
+         */
+        unimplemented!()
     }
 }
 

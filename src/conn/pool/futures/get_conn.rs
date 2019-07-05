@@ -6,27 +6,32 @@
 // option. All files in the project carrying such notice may not be copied,
 // modified, or distributed except according to those terms.
 
-use futures::{Future, Poll};
-
 use crate::{
     conn::{pool::Pool, Conn},
     error::*,
 };
+use std::{
+    future::Future,
+    pin::Pin,
+    task::{Context, Poll},
+};
 
 /// This future will take connection from a pool and resolve to `Conn`.
 pub struct GetConn {
-    pool: Pool,
+    pool: Pin<Box<Pool>>,
 }
 
 pub fn new(pool: &Pool) -> GetConn {
-    GetConn { pool: pool.clone() }
+    GetConn {
+        pool: Box::pin(pool.clone()),
+    }
 }
 
 impl Future for GetConn {
-    type Item = Conn;
-    type Error = Error;
+    type Output = Result<Conn>;
 
-    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        self.pool.poll()
+    fn poll(self: Pin<&mut Self>, _: &mut Context) -> Poll<Self::Output> {
+        //self.pool.poll()
+        unimplemented!()
     }
 }

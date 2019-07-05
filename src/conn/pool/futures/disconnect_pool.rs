@@ -6,9 +6,13 @@
 // option. All files in the project carrying such notice may not be copied,
 // modified, or distributed except according to those terms.
 
-use futures::{
-    Async::{NotReady, Ready},
-    Future, Poll,
+use std::{
+    future::Future,
+    pin::Pin,
+    task::{
+        Context,
+        Poll::{self, Pending, Ready},
+    },
 };
 
 use crate::{conn::pool::Pool, error::*};
@@ -26,10 +30,10 @@ pub fn new(pool: Pool) -> DisconnectPool {
 }
 
 impl Future for DisconnectPool {
-    type Item = ();
-    type Error = Error;
+    type Output = Result<()>;
 
-    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+    fn poll(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
+        /*
         self.pool.handle_futures()?;
 
         let (new_len, queue_len) = self
@@ -37,9 +41,11 @@ impl Future for DisconnectPool {
             .with_inner(|inner| (inner.new.len(), inner.queue.len()));
 
         if (new_len, queue_len) == (0, 0) {
-            Ok(Ready(()))
+            Ready(Ok(()))
         } else {
-            Ok(NotReady)
+            Pending
         }
+         */
+        unimplemented!()
     }
 }

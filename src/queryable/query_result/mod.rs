@@ -9,9 +9,9 @@
 pub use self::{for_each::ForEach, map::Map, reduce::Reduce};
 
 use futures::future::{
-    loop_fn, ok, AndThen,
+    ok, AndThen,
     Either::{self, *},
-    Future, FutureResult, Loop,
+    Future,
 };
 use mysql_common::packets::RawPacket;
 use mysql_common::row::convert::FromRowError;
@@ -38,18 +38,18 @@ mod map;
 mod reduce;
 
 pub type ForEachAndDrop<S, T, P, F> =
-    AndThen<Either<FutureResult<S, Error>, ForEach<T, P, F>>, BoxFuture<T>, fn(S) -> BoxFuture<T>>;
+    AndThen<Either<futures::io::Result<S>, ForEach<T, P, F>>, BoxFuture<T>, fn(S) -> BoxFuture<T>>;
 
 pub type MapAndDrop<S, T, P, F, U> = AndThen<
-    Either<FutureResult<(S, Vec<U>), Error>, Map<T, P, F, U>>,
-    (BoxFuture<T>, FutureResult<Vec<U>, Error>),
-    fn((S, Vec<U>)) -> (BoxFuture<T>, FutureResult<Vec<U>, Error>),
+    Either<futures::io::Result<(S, Vec<U>)>, Map<T, P, F, U>>,
+    (BoxFuture<T>, futures::io::Result<Vec<U>>),
+    fn((S, Vec<U>)) -> (BoxFuture<T>, futures::io::Result<Vec<U>>),
 >;
 
 pub type ReduceAndDrop<S, T, P, F, U> = AndThen<
-    Either<FutureResult<(S, U), Error>, Reduce<T, P, F, U>>,
-    (BoxFuture<T>, FutureResult<U, Error>),
-    fn((S, U)) -> (BoxFuture<T>, FutureResult<U, Error>),
+    Either<futures::io::Result<(S, U)>, Reduce<T, P, F, U>>,
+    (BoxFuture<T>, futures::io::Result<U>),
+    fn((S, U)) -> (BoxFuture<T>, futures::io::Result<U>),
 >;
 
 pub fn new<T, P>(
@@ -68,6 +68,7 @@ where
 pub fn disassemble<T, P>(
     query_result: QueryResult<T, P>,
 ) -> (T, Option<Arc<Vec<Column>>>, Option<StmtCacheResult>) {
+    /*
     match query_result {
         QueryResult(Empty(Some(A(conn_like)), cached, _)) => (conn_like, None, cached),
         QueryResult(WithRows(Some(A(conn_like)), columns, cached, _)) => {
@@ -75,6 +76,8 @@ pub fn disassemble<T, P>(
         }
         _ => unreachable!(),
     }
+     */
+    unimplemented!()
 }
 
 pub fn assemble<T, P>(
@@ -86,10 +89,13 @@ where
     T: ConnectionLike + Sized + 'static,
     P: Protocol + 'static,
 {
+    /*
     match columns {
         Some(columns) => QueryResult(WithRows(Some(A(conn_like)), columns, cached, PhantomData)),
         None => QueryResult(Empty(Some(A(conn_like)), cached, PhantomData)),
     }
+     */
+    unimplemented!()
 }
 
 enum QueryResultInner<T, P> {
@@ -127,6 +133,7 @@ where
     }
 
     fn into_inner(self) -> (T, Option<StmtCacheResult>) {
+        /*
         match self {
             QueryResult(Empty(conn_like, cached, _))
             | QueryResult(WithRows(conn_like, _, cached, _)) => match conn_like {
@@ -134,9 +141,12 @@ where
                 _ => unreachable!(),
             },
         }
+         */
+        unimplemented!()
     }
 
-    fn get_row_raw(self) -> impl MyFuture<(Self, Option<RawPacket>)> {
+    async fn get_row_raw(self) -> Result<(Self, Option<RawPacket>)> {
+        /*
         if self.is_empty() {
             return A(ok((self, None)));
         }
@@ -158,9 +168,12 @@ where
             }
         });
         B(fut)
+         */
+        unimplemented!()
     }
 
-    fn get_row(self) -> impl MyFuture<(Self, Option<Row>)> {
+    async fn get_row(self) -> Result<(Self, Option<Row>)> {
+        /*
         self.get_row_raw()
             .and_then(|(this, packet_opt)| match packet_opt {
                 Some(packet) => match this {
@@ -172,6 +185,8 @@ where
                 .map(|row| (this, Some(row))),
                 None => Ok((this, None)),
             })
+         */
+        unimplemented!()
     }
 
     fn new(
@@ -179,12 +194,15 @@ where
         columns: Option<Arc<Vec<Column>>>,
         cached: Option<StmtCacheResult>,
     ) -> QueryResult<T, P> {
+        /*
         match columns {
             Some(columns) => {
                 QueryResult(WithRows(Some(A(conn_like)), columns, cached, PhantomData))
             }
             None => QueryResult(Empty(Some(A(conn_like)), cached, PhantomData)),
         }
+         */
+        unimplemented!()
     }
 
     /// Last insert id (if not 0).
@@ -238,30 +256,36 @@ where
     /// It'll panic if any row isn't convertible to `R` (i.e. programmer error or unknown schema).
     /// * In case of programmer error see `FromRow` docs;
     /// * In case of unknown schema use [`QueryResult::try_collect`].
-    pub fn collect<R>(self) -> impl MyFuture<(Self, Vec<R>)>
+    pub async fn collect<R>(self) -> Result<(Self, Vec<R>)>
     where
         R: FromRow,
         R: Send + 'static,
     {
+        /*
         self.reduce(Vec::new(), |mut acc, row| {
             acc.push(FromRow::from_row(row));
             acc
         })
+         */
+        unimplemented!()
     }
 
     /// Returns future that collects result set of this query.
     ///
     /// It works the same way as [`QueryResult::collect`] but won't panic
     /// if row isn't convertible to `R`.
-    pub fn try_collect<R>(self) -> impl MyFuture<(Self, Vec<StdResult<R, FromRowError>>)>
+    pub async fn try_collect<R>(self) -> Result<(Self, Vec<StdResult<R, FromRowError>>)>
     where
         R: FromRow,
         R: Send + 'static,
     {
+        /*
         self.reduce(Vec::new(), |mut acc, row| {
             acc.push(FromRow::from_row_opt(row));
             acc
         })
+         */
+        unimplemented!()
     }
 
     /// Returns future that collects result set of a query result and drops everything else.
@@ -272,13 +296,16 @@ where
     /// It'll panic if any row isn't convertible to `R` (i.e. programmer error or unknown schema).
     /// * In case of programmer error see `FromRow` docs;
     /// * In case of unknown schema use [`QueryResult::try_collect`].
-    pub fn collect_and_drop<R>(self) -> impl MyFuture<(T, Vec<R>)>
+    pub async fn collect_and_drop<R>(self) -> Result<(T, Vec<R>)>
     where
         R: FromRow,
         R: Send + 'static,
     {
+        /*
         self.collect()
             .and_then(|(this, output)| (this.drop_result(), ok(output)))
+         */
+        unimplemented!()
     }
 
     /// Returns future that collects result set of a query result and drops everything else.
@@ -286,27 +313,33 @@ where
     ///
     /// It works the same way as [`QueryResult::collect_and_drop`] but won't panic
     /// if row isn't convertible to `R`.
-    pub fn try_collect_and_drop<R>(self) -> impl MyFuture<(T, Vec<StdResult<R, FromRowError>>)>
+    pub async fn try_collect_and_drop<R>(self) -> Result<(T, Vec<StdResult<R, FromRowError>>)>
     where
         R: FromRow,
         R: Send + 'static,
     {
+        /*
         self.try_collect()
             .and_then(|(this, output)| (this.drop_result(), ok(output)))
+         */
+        unimplemented!()
     }
 
     /// Returns future that will execute `fun` on every row of current result set.
     ///
     /// It will stop on result set boundary (see `QueryResult::collect` docs).
-    pub fn for_each<F>(self, fun: F) -> Either<FutureResult<Self, Error>, ForEach<T, P, F>>
+    pub fn for_each<F>(self, fun: F) -> Either<futures::io::Result<Self>, ForEach<T, P, F>>
     where
         F: FnMut(Row),
     {
+        /*
         if self.is_empty() {
             A(ok(self))
         } else {
             B(ForEach::new(self, fun))
         }
+         */
+        unimplemented!()
     }
 
     /// Returns future that will execute `fun` on every row of current result set and drop
@@ -315,22 +348,28 @@ where
     where
         F: FnMut(Row),
     {
+        /*
         self.for_each(fun)
             .and_then(|x| Box::new(QueryResult::drop_result(x)))
+         */
+        unimplemented!()
     }
 
     /// Returns future that will map every row of current result set to `U` using `fun`.
     ///
     /// It will stop on result set boundary (see `QueryResult::collect` docs).
-    pub fn map<F, U>(self, fun: F) -> Either<FutureResult<(Self, Vec<U>), Error>, Map<T, P, F, U>>
+    pub fn map<F, U>(self, fun: F) -> Either<futures::io::Result<(Self, Vec<U>)>, Map<T, P, F, U>>
     where
         F: FnMut(Row) -> U,
     {
+        /*
         if self.is_empty() {
             A(ok((self, Vec::new())))
         } else {
             B(Map::new(self, fun))
         }
+         */
+        unimplemented!()
     }
 
     /// Returns future that will map every row of current result set to `U` using `fun` and drop
@@ -339,9 +378,10 @@ where
     where
         F: FnMut(Row) -> U,
     {
+        /*
         fn join_drop<T, P, U>(
             (this, output): (QueryResult<T, P>, Vec<U>),
-        ) -> (BoxFuture<T>, FutureResult<Vec<U>, Error>)
+        ) -> (BoxFuture<T>, futures::io::Result<Vec<U>, Error>)
         where
             T: ConnectionLike + Sized + 'static,
             P: Protocol + 'static,
@@ -350,6 +390,8 @@ where
         }
 
         self.map(fun).and_then(join_drop)
+         */
+        unimplemented!()
     }
 
     /// Returns future that will reduce rows of current result set to `U` using `fun`.
@@ -359,15 +401,18 @@ where
         self,
         init: U,
         fun: F,
-    ) -> Either<FutureResult<(Self, U), Error>, Reduce<T, P, F, U>>
+    ) -> Either<futures::io::Result<(Self, U)>, Reduce<T, P, F, U>>
     where
         F: FnMut(U, Row) -> U,
     {
+        /*
         if self.is_empty() {
             A(ok((self, init)))
         } else {
             B(Reduce::new(self, init, fun))
         }
+         */
+        unimplemented!()
     }
 
     /// Returns future that will reduce rows of current result set to `U` using `fun` and drop
@@ -376,9 +421,10 @@ where
     where
         F: FnMut(U, Row) -> U,
     {
+        /*
         fn join_drop<T, P, U>(
             (this, output): (QueryResult<T, P>, U),
-        ) -> (BoxFuture<T>, FutureResult<U, Error>)
+        ) -> (BoxFuture<T>, futures::io::Result<U, Error>)
         where
             T: ConnectionLike + Sized + 'static,
             P: Protocol + 'static,
@@ -387,10 +433,13 @@ where
         }
 
         self.reduce(init, fun).and_then(join_drop)
+         */
+        unimplemented!()
     }
 
     /// Returns future that will drop this query result end resolve to a wrapped `Queryable`.
-    pub fn drop_result(self) -> impl MyFuture<T> {
+    pub async fn drop_result(self) -> Result<T> {
+        /*
         let fut = loop_fn(self, |this| {
             if !this.has_rows() {
                 if this.more_results_exists() {
@@ -413,6 +462,8 @@ where
                 B(ok(conn_like))
             }
         })
+         */
+        unimplemented!()
     }
 
     /// Returns reference to columns in this query result.
@@ -442,6 +493,7 @@ impl<T: ConnectionLike + 'static, P: Protocol> ConnectionLikeWrapper for QueryRe
     where
         Self: Sized,
     {
+        /*
         match self {
             QueryResult(Empty(conn_like, cached, _)) => match conn_like {
                 Some(A(conn_like)) => {
@@ -471,9 +523,12 @@ impl<T: ConnectionLike + 'static, P: Protocol> ConnectionLikeWrapper for QueryRe
                 None => unreachable!(),
             },
         }
+         */
+        unimplemented!()
     }
 
     fn return_stream(&mut self, stream: io::Stream) {
+        /*
         match *self {
             QueryResult(Empty(ref mut conn_like, ..))
             | QueryResult(WithRows(ref mut conn_like, ..)) => match conn_like.take() {
@@ -484,9 +539,12 @@ impl<T: ConnectionLike + 'static, P: Protocol> ConnectionLikeWrapper for QueryRe
                 None => unreachable!(),
             },
         }
+         */
+        unimplemented!()
     }
 
     fn conn_like_ref(&self) -> &Self::ConnLike {
+        /*
         match *self {
             QueryResult(Empty(ref conn_like, ..)) | QueryResult(WithRows(ref conn_like, ..)) => {
                 match *conn_like {
@@ -495,9 +553,12 @@ impl<T: ConnectionLike + 'static, P: Protocol> ConnectionLikeWrapper for QueryRe
                 }
             }
         }
+         */
+        unimplemented!()
     }
 
     fn conn_like_mut(&mut self) -> &mut Self::ConnLike {
+        /*
         match *self {
             QueryResult(Empty(ref mut conn_like, ..))
             | QueryResult(WithRows(ref mut conn_like, ..)) => match *conn_like {
@@ -505,5 +566,7 @@ impl<T: ConnectionLike + 'static, P: Protocol> ConnectionLikeWrapper for QueryRe
                 _ => unreachable!(),
             },
         }
+         */
+        unimplemented!()
     }
 }

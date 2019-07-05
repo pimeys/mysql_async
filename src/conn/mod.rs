@@ -8,13 +8,10 @@
 
 pub use mysql_common::named_params;
 
-use futures::future::{err, loop_fn, ok, Either::*, Future, IntoFuture, Loop};
-use mysql_common::{
-    crypto,
-    packets::{
-        parse_auth_switch_request, parse_handshake_packet, AuthPlugin, AuthSwitchRequest,
-        HandshakeResponse, SslRequest,
-    },
+use futures::future::{err, ok, Either::*, Future, IntoFuture};
+use mysql_common::packets::{
+    parse_auth_switch_request, parse_handshake_packet, AuthPlugin, AuthSwitchRequest,
+    HandshakeResponse, SslRequest,
 };
 
 use std::{fmt, mem, str::FromStr, sync::Arc};
@@ -37,6 +34,7 @@ pub mod stmt_cache;
 
 /// Helper function that asynchronously disconnects connection on the default tokio executor.
 fn disconnect(mut conn: Conn) {
+    /*
     use tokio::executor::{DefaultExecutor, Executor};
     let mut executor = DefaultExecutor::current();
 
@@ -51,6 +49,8 @@ fn disconnect(mut conn: Conn) {
             conn.cleanup().and_then(Conn::disconnect).map_err(drop),
         ));
     }
+     */
+    unimplemented!()
 }
 
 /// Mysql connection
@@ -177,7 +177,8 @@ impl Conn {
         }
     }
 
-    fn handle_handshake(self) -> impl MyFuture<Conn> {
+    async fn handle_handshake(self) -> Result<Conn> {
+        /*
         self.read_packet().and_then(move |(mut conn, packet)| {
             parse_handshake_packet(&*packet.0)
                 .map_err(Error::from)
@@ -205,9 +206,12 @@ impl Conn {
                     Ok(conn)
                 })
         })
+         */
+        unimplemented!()
     }
 
-    fn switch_to_ssl_if_needed(self) -> impl MyFuture<Conn> {
+    async fn switch_to_ssl_if_needed(self) -> Result<Conn> {
+        /*
         if self
             .inner
             .opts
@@ -231,9 +235,12 @@ impl Conn {
         } else {
             B(ok(self))
         }
+         */
+        unimplemented!()
     }
 
-    fn do_handshake_response(self) -> impl MyFuture<Conn> {
+    async fn do_handshake_response(self) -> Result<Conn> {
+        /*
         let auth_data = self
             .inner
             .auth_plugin
@@ -249,12 +256,15 @@ impl Conn {
         );
 
         self.write_packet(handshake_response.as_ref())
+         */
+        unimplemented!()
     }
 
     fn perform_auth_switch(
         mut self,
         auth_switch_request: AuthSwitchRequest<'_>,
     ) -> BoxFuture<Conn> {
+        /*
         if !self.inner.auth_switched {
             self.inner.auth_switched = true;
             self.inner.nonce = auth_switch_request.plugin_data().into();
@@ -270,17 +280,23 @@ impl Conn {
         } else {
             unreachable!("auth_switched flag should be checked by caller")
         }
+         */
+        unimplemented!()
     }
 
-    fn continue_auth(self) -> impl MyFuture<Conn> {
+    async fn continue_auth(self) -> Result<Conn> {
+        /*
         match self.inner.auth_plugin {
             AuthPlugin::MysqlNativePassword => A(self.continue_mysql_native_password_auth()),
             AuthPlugin::CachingSha2Password => B(self.continue_caching_sha2_password_auth()),
             _ => unreachable!(),
         }
+         */
+        unimplemented!()
     }
 
-    fn continue_caching_sha2_password_auth(self) -> impl MyFuture<Conn> {
+    async fn continue_caching_sha2_password_auth(self) -> Result<Conn> {
+        /*
         self.read_packet()
             .and_then(|(conn, packet)| match packet.as_ref().get(0) {
                 Some(0x01) => match packet.as_ref().get(1) {
@@ -333,9 +349,12 @@ impl Conn {
                 }
                 .into()))))),
             })
+         */
+        unimplemented!()
     }
 
-    fn continue_mysql_native_password_auth(self) -> impl MyFuture<Conn> {
+    async fn continue_mysql_native_password_auth(self) -> Result<Conn> {
+        /*
         self.read_packet()
             .and_then(|(this, packet)| match packet.0.get(0) {
                 Some(0x00) => A(ok(this)),
@@ -353,13 +372,17 @@ impl Conn {
                     DriverError::UnexpectedPacket { payload: packet.0 }.into()
                 ))),
             })
+         */
+        unimplemented!()
     }
 
-    fn drop_packet(self) -> impl MyFuture<Conn> {
-        self.read_packet().map(|(conn, _)| conn)
+    async fn drop_packet(self) -> Result<Conn> {
+        //self.read_packet().map(|(conn, _)| conn)
+        unimplemented!()
     }
 
-    fn run_init_commands(self) -> impl MyFuture<Conn> {
+    async fn run_init_commands(self) -> Result<Conn> {
+        /*
         let init = self
             .inner
             .opts
@@ -380,10 +403,13 @@ impl Conn {
                 }
             },
         )
+         */
+        unimplemented!()
     }
 
     /// Returns future that resolves to `Conn`.
-    pub fn new<T: Into<Opts>>(opts: T) -> impl MyFuture<Conn> {
+    pub async fn new<T: Into<Opts>>(opts: T) -> Result<Conn> {
+        /*
         let opts = opts.into();
         let mut conn = Conn::empty(opts.clone());
 
@@ -411,14 +437,19 @@ impl Conn {
             .and_then(Conn::read_max_allowed_packet)
             .and_then(Conn::read_wait_timeout)
             .and_then(Conn::run_init_commands)
+         */
+        unimplemented!()
     }
 
     /// Returns future that resolves to `Conn`.
-    pub fn from_url<T: AsRef<str>>(url: T) -> impl MyFuture<Conn> {
+    pub async fn from_url<T: AsRef<str>>(url: T) -> Result<Conn> {
+        /*
         Opts::from_str(url.as_ref())
             .map_err(Error::from)
             .into_future()
             .and_then(Conn::new)
+         */
+        unimplemented!()
     }
 
     /// Will try to connect via socket using socket address in `self.inner.socket`.
@@ -426,7 +457,8 @@ impl Conn {
     /// Returns new connection on success or self on error.
     ///
     /// Won't try to reconnect if socket connection is already enforced in `Opts`.
-    fn reconnect_via_socket_if_needed(self) -> Box<MyFuture<Conn>> {
+    async fn reconnect_via_socket_if_needed(self) -> Result<Conn> {
+        /*
         if let Some(socket) = self.inner.socket.as_ref() {
             let opts = self.inner.opts.clone();
             if opts.get_socket().is_none() {
@@ -440,12 +472,15 @@ impl Conn {
             }
         }
         Box::new(ok(self))
+         */
+        unimplemented!()
     }
 
     /// Returns future that resolves to `Conn` with socket address stored in it.
     ///
     /// Do nothing if socket address is already in `Opts` or if `prefer_socket` is `false`.
-    fn read_socket(self) -> impl MyFuture<Self> {
+    async fn read_socket(self) -> Result<Self> {
+        /*
         if self.inner.opts.get_prefer_socket() && self.inner.socket.is_none() {
             A(self.first("SELECT @@socket").map(|(mut this, row_opt)| {
                 this.inner.socket = row_opt.unwrap_or((None,)).0;
@@ -454,24 +489,32 @@ impl Conn {
         } else {
             B(ok(self))
         }
+         */
+        unimplemented!()
     }
 
     /// Returns future that resolves to `Conn` with `max_allowed_packet` stored in it.
-    fn read_max_allowed_packet(self) -> impl MyFuture<Self> {
+    async fn read_max_allowed_packet(self) -> Result<Self> {
+        /*
         self.first("SELECT @@max_allowed_packet")
             .map(|(mut this, row_opt)| {
                 this.inner.max_allowed_packet = row_opt.unwrap_or((1024 * 1024 * 2,)).0;
                 this
             })
+         */
+        unimplemented!()
     }
 
     /// Returns future that resolves to `Conn` with `wait_timeout` stored in it.
-    fn read_wait_timeout(self) -> impl MyFuture<Self> {
+    async fn read_wait_timeout(self) -> Result<Self> {
+        /*
         self.first("SELECT @@wait_timeout")
             .map(|(mut this, row_opt)| {
                 this.inner.wait_timeout = row_opt.unwrap_or((28800,)).0;
                 this
             })
+         */
+        unimplemented!()
     }
 
     /// Returns true if time since last io exceeds wait_timeout (or conn_ttl if specified in opts).
@@ -486,7 +529,8 @@ impl Conn {
     }
 
     /// Returns future that resolves to a `Conn` with `COM_RESET_CONNECTION` executed on it.
-    pub fn reset(self) -> impl MyFuture<Conn> {
+    pub async fn reset(self) -> Result<Conn> {
+        /*
         let pool = self.inner.pool.clone();
         let fut = if self.inner.version > (5, 7, 2) {
             let fut = self
@@ -502,15 +546,21 @@ impl Conn {
             conn.inner.pool = pool;
             conn
         })
+         */
+        unimplemented!()
     }
 
-    fn rollback_transaction(mut self) -> impl MyFuture<Self> {
+    async fn rollback_transaction(mut self) -> Result<Self> {
+        /*
         assert!(self.inner.in_transaction);
         self.inner.in_transaction = false;
         self.drop_query("ROLLBACK")
+         */
+        unimplemented!()
     }
 
-    fn drop_result(mut self) -> impl MyFuture<Conn> {
+    async fn drop_result(mut self) -> Result<Conn> {
+        /*
         match self.inner.has_result.take() {
             Some((columns, None)) => A(B(query_result::assemble::<_, TextProtocol>(
                 self,
@@ -526,9 +576,12 @@ impl Conn {
             .drop_result())),
             None => B(ok(self)),
         }
+         */
+        unimplemented!()
     }
 
-    fn cleanup(self) -> BoxFuture<Conn> {
+    async fn cleanup(self) -> Result<Conn> {
+        /*
         if self.inner.has_result.is_some() {
             Box::new(self.drop_result().and_then(Self::cleanup))
         } else if self.inner.in_transaction {
@@ -536,6 +589,8 @@ impl Conn {
         } else {
             Box::new(ok(self))
         }
+         */
+        unimplemented!()
     }
 }
 
@@ -649,6 +704,7 @@ impl ConnectionLike for Conn {
     }
 }
 
+/*
 #[cfg(test)]
 mod test {
     use futures::Future;
@@ -1391,3 +1447,4 @@ mod test {
         }
     }
 }
+ */

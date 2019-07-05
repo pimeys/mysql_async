@@ -55,6 +55,8 @@ impl<S: AsyncRead + AsyncWrite> AsyncRead for TlsStream<S> {}
 
 impl<S: AsyncRead + AsyncWrite> AsyncWrite for TlsStream<S> {
     fn shutdown(&mut self) -> Poll<(), io::Error> {
+        unimplemented!()
+        /*
         match self.inner.shutdown() {
             Ok(t) => t,
             Err(ref e) if e.kind() == ::std::io::ErrorKind::WouldBlock => {
@@ -63,6 +65,7 @@ impl<S: AsyncRead + AsyncWrite> AsyncWrite for TlsStream<S> {
             Err(e) => return Err(e.into()),
         }
         self.inner.get_mut().shutdown()
+         */
     }
 }
 
@@ -75,7 +78,8 @@ impl<S: Read + Write> Future for ConnectAsync<S> {
     type Error = Error;
 
     fn poll(&mut self) -> Poll<TlsStream<S>, Error> {
-        self.inner.poll()
+        //self.inner.poll()
+        unimplemented!()
     }
 }
 
@@ -88,6 +92,8 @@ impl<S: Read + Write> Future for MidHandshake<S> {
     type Error = Error;
 
     fn poll(&mut self) -> Poll<TlsStream<S>, Error> {
+        unimplemented!()
+        /*
         match self.inner.take().expect("cannot poll MidHandshake twice") {
             Ok(stream) => Ok(TlsStream { inner: stream }.into()),
             Err(HandshakeError::Failure(e)) => Err(e),
@@ -100,6 +106,7 @@ impl<S: Read + Write> Future for MidHandshake<S> {
                 }
             },
         }
+         */
     }
 }
 
@@ -126,9 +133,11 @@ pub fn connect_async<S>(connector: &TlsConnector, domain: &str, stream: S) -> Co
 where
     S: Read + Write,
 {
+    /*
     ConnectAsync {
         inner: MidHandshake {
             inner: Some(connector.connect(domain, stream)),
         },
     }
+     */
 }

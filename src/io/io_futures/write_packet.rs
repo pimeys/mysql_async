@@ -6,10 +6,14 @@
 // option. All files in the project carrying such notice may not be copied,
 // modified, or distributed except according to those terms.
 
-use futures::{try_ready, Async, AsyncSink, Future, Poll, Sink};
-use mysql_common::packets::RawPacket;
-
 use crate::{consts::MAX_PAYLOAD_LEN, error::*, io::Stream};
+use futures::{ready, Sink};
+use mysql_common::packets::RawPacket;
+use std::{
+    future::Future,
+    pin::Pin,
+    task::{Context, Poll},
+};
 
 /// Future that writes packet to a `Stream` and resolves to a pair of `Stream` and MySql's sequence
 /// id.
@@ -21,6 +25,8 @@ pub struct WritePacket {
 }
 
 pub fn new(stream: Stream, data: Vec<u8>, seq_id: u8) -> WritePacket {
+    unimplemented!()
+    /*
     // at least one packet will be written
     let resulting_seq_id = seq_id.wrapping_add(1);
 
@@ -39,13 +45,14 @@ pub fn new(stream: Stream, data: Vec<u8>, seq_id: u8) -> WritePacket {
         seq_id,
         resulting_seq_id,
     }
+     */
 }
 
 impl Future for WritePacket {
-    type Item = (Stream, u8);
-    type Error = Error;
+    type Output = Result<(Stream, u8)>;
 
-    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+    fn poll(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
+        /*
         if let Some(data) = self.data.take() {
             let send_result = self
                 .stream
@@ -74,5 +81,8 @@ impl Future for WritePacket {
             self.stream.take().unwrap(),
             self.resulting_seq_id,
         )))
+
+         */
+        unimplemented!()
     }
 }

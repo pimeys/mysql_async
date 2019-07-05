@@ -7,19 +7,21 @@
 // modified, or distributed except according to those terms.
 
 use bytes::{Buf, BufMut};
-use futures::{future::Future, Async};
 use tokio::io::{AsyncRead, AsyncWrite};
 
 use std::{
+    future::Future,
     io::{self, Read, Write},
     path::Path,
+    pin::Pin,
+    task::{Context, Poll},
 };
 
 /// Unix domain socket connection on unix, or named pipe connection on windows.
 #[derive(Debug)]
 pub struct Socket {
     #[cfg(unix)]
-    inner: tokio_uds::UnixStream,
+    inner: Pin<Box<romio::uds::UnixStream>>,
     #[cfg(windows)]
     inner: tokio_named_pipes::NamedPipe,
 }
@@ -27,13 +29,15 @@ pub struct Socket {
 impl Socket {
     /// Connects a new socket.
     #[cfg(unix)]
-    pub fn new<P: AsRef<Path>>(path: P) -> impl Future<Item = Socket, Error = io::Error> {
-        tokio_uds::UnixStream::connect(path).map(|socket| Socket { inner: socket })
+    pub async fn new<P: AsRef<Path>>(path: P) -> futures::io::Result<Socket> {
+        //tokio_uds::UnixStream::connect(path).map(|socket| Socket { inner: socket })
+        unimplemented!()
     }
 
     /// Connects a new socket.
     #[cfg(windows)]
-    pub fn new<P: AsRef<Path>>(path: P) -> impl Future<Item = Socket, Error = io::Error> {
+    pub async fn new<P: AsRef<Path>>(path: P) -> futures::io::Result<Socket> {
+        /*
         use futures::future::IntoFuture;
         use tokio_named_pipes::NamedPipe;
 
@@ -44,47 +48,63 @@ impl Socket {
                 Ok(Socket { inner: pipe })
             })
             .into_future()
+         */
+        unimplemented!()
     }
 }
 
 impl Read for Socket {
-    fn read(&mut self, buf: &mut [u8]) -> Result<usize, io::Error> {
-        self.inner.read(buf)
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        //self.inner.read(buf)
+        unimplemented!()
     }
 }
 
 impl Write for Socket {
     fn write(&mut self, buf: &[u8]) -> Result<usize, io::Error> {
-        self.inner.write(buf)
+        //self.inner.write(buf)
+        unimplemented!()
     }
 
     fn flush(&mut self) -> Result<(), io::Error> {
-        self.inner.flush()
+        //self.inner.flush()
+        unimplemented!()
     }
 }
 
 impl AsyncRead for Socket {
     unsafe fn prepare_uninitialized_buffer(&self, buf: &mut [u8]) -> bool {
-        self.inner.prepare_uninitialized_buffer(buf)
+        //self.inner.prepare_uninitialized_buffer(buf)
+        unimplemented!()
     }
 
-    fn read_buf<B: BufMut>(&mut self, buf: &mut B) -> Result<Async<usize>, io::Error>
-    where
-        Self: Sized,
-    {
-        self.inner.read_buf(buf)
+    fn poll_read(
+        self: Pin<&mut Self>,
+        cx: &mut Context,
+        buf: &mut [u8],
+    ) -> Poll<io::Result<usize>> {
+        //self.inner.poll_read(cx, buf)
+        unimplemented!()
     }
 }
 
 impl AsyncWrite for Socket {
-    fn shutdown(&mut self) -> Result<Async<()>, io::Error> {
-        AsyncWrite::shutdown(&mut self.inner)
+    fn poll_write(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &[u8],
+    ) -> Poll<Result<usize, io::Error>> {
+        //self.inner.poll_write(cx, buf)
+        unimplemented!()
     }
 
-    fn write_buf<B: Buf>(&mut self, buf: &mut B) -> Result<Async<usize>, io::Error>
-    where
-        Self: Sized,
-    {
-        self.inner.write_buf(buf)
+    fn poll_flush(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Result<(), io::Error>> {
+        //self.inner.poll_flush(cx)
+        unimplemented!()
+    }
+
+    fn poll_shutdown(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Result<(), io::Error>> {
+        //self.inner.poll_shutdown(cx)
+        unimplemented!()
     }
 }

@@ -6,11 +6,11 @@
 // option. All files in the project carrying such notice may not be copied,
 // modified, or distributed except according to those terms.
 
-use futures::{Future, IntoFuture};
-use tokio::fs::File;
+use futures::future::IntoFuture;
+//use tokio::fs::File;
 use tokio_io::AsyncRead;
 
-use std::{collections::HashSet, path::PathBuf, str::from_utf8};
+use std::{collections::HashSet, future::Future, path::PathBuf, str::from_utf8};
 
 use crate::{local_infile_handler::LocalInfileHandler, BoxFuture};
 
@@ -50,6 +50,7 @@ impl WhiteListFsLocalInfileHandler {
 
 impl LocalInfileHandler for WhiteListFsLocalInfileHandler {
     fn handle(&self, file_name: &[u8]) -> BoxFuture<Box<dyn AsyncRead + Send + 'static>> {
+        /*
         let path: PathBuf = match from_utf8(file_name) {
             Ok(path_str) => path_str.into(),
             Err(_) => return Box::new(Err("Invalid file name".into()).into_future()),
@@ -65,5 +66,7 @@ impl LocalInfileHandler for WhiteListFsLocalInfileHandler {
             .map_err(|e| e.into());
 
         Box::new(future)
+         */
+        unimplemented!()
     }
 }
