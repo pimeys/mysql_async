@@ -10,7 +10,7 @@ use futures::{
     ready,
     stream::{Stream, StreamFuture},
 };
-
+use futures_util::stream::StreamExt;
 use std::{
     future::Future,
     pin::Pin,
@@ -35,26 +35,25 @@ pub struct ReadPacket<T> {
 
 impl<T: ConnectionLike> ReadPacket<T> {
     pub fn new(conn_like: T) -> Self {
-        /*
         let (incomplete_conn, stream) = conn_like.take_stream();
+
         ReadPacket {
             conn_like: Some(incomplete_conn),
             fut: stream.into_future(),
         }
-         */
-        unimplemented!()
     }
 }
 
-impl<T: ConnectionLike> Future for ReadPacket<T> {
+impl<T: ConnectionLike + Unpin> Future for ReadPacket<T> {
     type Output = Result<(T, RawPacket)>;
 
-    fn poll(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
-        /*
-        let (packet_opt, stream) = try_ready!(self.fut.poll());
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
+        let me = &mut *self;
+        let (packet_opt, stream) = ready!(Pin::new(&mut self.fut).poll(cx));
         let mut conn_like = self.conn_like.take().unwrap().return_stream(stream);
+
         match packet_opt {
-            Some((packet, seq_id)) => {
+            Some(Ok((packet, seq_id))) => {
                 if let Ok(ok_packet) = parse_ok_packet(&*packet.0, conn_like.get_capabilities()) {
                     conn_like.set_affected_rows(ok_packet.affected_rows());
                     conn_like.set_last_insert_id(ok_packet.last_insert_id().unwrap_or(0));
@@ -63,16 +62,15 @@ impl<T: ConnectionLike> Future for ReadPacket<T> {
                 } else if let Ok(err_packet) =
                     parse_err_packet(&*packet.0, conn_like.get_capabilities())
                 {
-                    return Err(err_packet.into());
+                    return Ready(Err(err_packet.into()));
                 }
 
                 conn_like.touch();
                 conn_like.set_seq_id(seq_id.wrapping_add(1));
-                Ok(Ready((conn_like, packet)))
+                Ready(Ok((conn_like, packet)))
             }
-            None => Err(DriverError::ConnectionClosed.into()),
+            Some(Err(e)) => panic!(e), // TODO: What's in here?
+            _ => Ready(Err(DriverError::ConnectionClosed.into())),
         }
-         */
-        unimplemented!()
     }
 }
